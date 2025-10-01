@@ -5,7 +5,7 @@ from flask_mail import Message
 from sqlalchemy.exc import IntegrityError
 
 from extensions import db, mail
-from models import User
+from models import User, RevokedToken
 from threading import Thread
 from flask import current_app
 
@@ -15,6 +15,7 @@ from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity,
     decode_token,
+    get_jwt,
 )
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -181,3 +182,20 @@ def reset_password():
     user.set_password(new_pw)
     db.session.commit()
     return jsonify({"message": "Password updated successfully."}), 200
+
+
+@auth_bp.post("/logout")
+@jwt_required()
+def logout():
+    jti = get_jwt()["jti"]  # unique identifier for this token
+    try:
+        revoked = RevokedToken(jti=jti)
+        db.session.add(revoked)
+        db.session.commit()
+        return jsonify({
+            "message": "Successfully logged out. Please sign in again.",
+            "redirect": f"{_frontend_base_url()}/login"
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Logout failed", "details": str(e)}), 500

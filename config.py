@@ -2,6 +2,9 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 
+JWT_BLACKLIST_ENABLED = True
+JWT_BLACKLIST_TOKEN_CHECKS = ["access", "refresh"]
+
 load_dotenv()
 
 class Config:
